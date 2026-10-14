@@ -1,0 +1,54 @@
+name: Deploy City-Life v0.5
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'City-Life-v0.5-pages-build.zip'
+      - '.github/workflows/deploy-v05.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout existing repository
+        uses: actions/checkout@v4
+
+      - name: Verify and unpack uploaded v0.5 build
+        run: |
+          unzip -tq City-Life-v0.5-pages-build.zip
+          mkdir -p _site
+          unzip -q City-Life-v0.5-pages-build.zip -d _site
+          test -s _site/index.html
+          test -s _site/app.js
+          test -s _site/style.css
+          test -s _site/sw.js
+          test -s _site/assets/models/street-kit.glb
+          test -s _site/assets/models/citizen-standard.glb
+          test -s _site/assets/textures/asphalt_02-color.jpg
+          test -s _site/build-info.json
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload v0.5 website artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Publish v0.5 to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
