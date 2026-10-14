@@ -1,0 +1,56 @@
+name: Deploy City-Life v1.0
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '00-pages-deployment.zip'
+      - '.github/workflows/deploy-v10.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify and unpack 1.0 release
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -tq 00-pages-deployment.zip
+          mkdir -p _site
+          unzip -q 00-pages-deployment.zip -d _site
+          test -s _site/index.html
+          test -s _site/app.js
+          test -s _site/style.css
+          test -s _site/sw.js
+          test -s _site/build-info.json
+          test -s _site/assets/models/street-kit.glb
+          test -s _site/assets/models/citizen-standard.glb
+          grep -q '"version": "1.0.0-candidate"' _site/build-info.json
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
